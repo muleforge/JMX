@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mule-configuration PUBLIC "-//MuleSource//DTD mule-configuration XML V1.0//EN"
+                                "http://mule.mulesource.org/dtds/mule-configuration.dtd">
+
+<mule-configuration id="JmxSample" version="1.0">
+    <agents>
+        <agent name="JMX" className="org.mule.management.agents.JmxAgent"/>
+    </agents>
+
+    <connector name="SystemStreamConnector" className="org.mule.providers.stream.SystemStreamConnector">
+        <properties>
+            <property name="promptMessage" value="Please enter something: "/>
+            <property name="messageDelayTime" value="1000"/>
+        </properties>
+    </connector>
+
+    <connector name="JmxLocal" className="org.mule.providers.jmx.JmxConnector">
+        <!--
+        <properties>
+            <property name="serviceUrl" value="service:jmx:rmi://localhost/jndi/rmi://localhost:1099/jmx"/>
+            <container-property name="delegationSubject" reference="jmx.principal" container="spring" required="false"/>
+            <map name="environment">
+                <property name="user" value="username"/>
+                <property name="pass" value="secret"/>
+            </map>
+        </properties>
+-->
+    </connector>
+
+    <transformers>
+        <transformer name="SIGNATURE" className="org.mule.providers.jmx.transformers.ObjectToArrayTransformer">
+            <properties>
+                <property name="forceLength" value="0"/>
+            </properties>
+        </transformer>
+    </transformers>
+
+    <model name="Mule.JmxSample">
+        <mule-descriptor name="EchoUMO" implementation="org.mule.components.simple.EchoComponent">
+            <inbound-router>
+                <endpoint address="stream://System.in"/>
+            </inbound-router>
+            <outbound-router>
+                <router className="org.mule.routing.outbound.OutboundPassThroughRouter">
+                    <endpoint address="jmx:operation://Mule.JmxSample:type=org.mule.ManagementContext,name=MuleServerInfo/dispose"
+                              transformers="SIGNATURE"/>
+                </router>
+            </outbound-router>
+        </mule-descriptor>
+    </model>
+</mule-configuration>
