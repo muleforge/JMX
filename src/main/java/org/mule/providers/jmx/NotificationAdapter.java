@@ -19,12 +19,12 @@ class NotificationAdapter extends AbstractMessageAdapter {
         }
         this.notification = (Notification) message;
         id = String.valueOf(getSequenceNumber());
-        setLongProperty("jmx.notification.sequenceNumber", notification.getSequenceNumber());
-        setLongProperty("jmx.notification.timestamp", notification.getTimeStamp());
-        setStringProperty("jmx.notification.type", notification.getType());
-        setStringProperty("jmx.notification.message", notification.getMessage());
-        setProperty("jmx.notification.source", notification.getSource());
-        setProperty("jmx.notification.userData", notification.getUserData());
+        setLongProperty(JmxConnector.PROP_SEQ_NUMBER, notification.getSequenceNumber());
+        setLongProperty(JmxConnector.PROP_TIMESTAMP, notification.getTimeStamp());
+        setStringProperty(JmxConnector.PROP_TYPE, notification.getType());
+        setStringProperty(JmxConnector.PROP_MESSAGE, notification.getMessage());
+        setProperty(JmxConnector.PROP_SOURCE, notification.getSource());
+        setProperty(JmxConnector.PROP_USER_DATA, notification.getUserData());
     }
 
     public String getPayloadAsString(String encoding) throws Exception {

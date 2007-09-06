@@ -1,13 +1,10 @@
 package org.mule.providers.jmx;
 
-import org.mule.umo.endpoint.UMOEndpointURI;
 import org.mule.umo.UMOEvent;
+import org.mule.umo.endpoint.UMOEndpointURI;
 import org.mule.umo.transformer.TransformerException;
 
-import javax.management.ObjectName;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotificationFilter;
-import javax.management.NotificationFilterSupport;
+import javax.management.*;
 import java.util.Properties;
 
 class UriUtils {
@@ -23,6 +20,7 @@ class UriUtils {
     }
 
     public static String createAttributeName(UMOEndpointURI uri) {
+        // TODO: shortcut for JMImplementation:type=MBeanServerDelegate.
         return uri.getResourceInfo();
     }
 
@@ -32,13 +30,23 @@ class UriUtils {
 
     public static NotificationFilter createNotificationFilter(UMOEndpointURI endpointURI) {
         Properties params = endpointURI.getUserParams();
-        if (!params.containsKey("filter")) return null;
-
-        NotificationFilterSupport filter = new NotificationFilterSupport();
-        for (String typePrefix : params.getProperty("filter").split(";")) {
-            filter = new NotificationFilterSupport();
-            filter.enableType(typePrefix);
+        if (params.containsKey(JmxConnector.URIPROP_FILTER_NOTIFTYPE)) {
+            NotificationFilterSupport filter = new NotificationFilterSupport();
+            for (String typePrefix : params.getProperty(JmxConnector.URIPROP_FILTER_NOTIFTYPE).split(";")) {
+                filter.enableType(typePrefix);
+            }
+            return filter;
         }
-        return filter;
+
+        if (params.containsKey(JmxConnector.URIPROP_FILTER_ATTRIBUTES)) {
+            AttributeChangeNotificationFilter filter = new AttributeChangeNotificationFilter();
+            for (String attribute : params.getProperty(JmxConnector.URIPROP_FILTER_ATTRIBUTES).split(";")) {
+                filter.enableAttribute(attribute);
+            }
+            return filter;
+        }
+
+        // TODO: provide support for MBeanServerNotificationFilter {mbeans/types}
+        return null;
     }
 }

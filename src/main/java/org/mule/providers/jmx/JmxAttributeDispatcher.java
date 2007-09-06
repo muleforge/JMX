@@ -1,12 +1,13 @@
 package org.mule.providers.jmx;
 
+import org.mule.impl.MuleMessage;
 import org.mule.providers.AbstractMessageDispatcher;
+import org.mule.providers.NullPayload;
 import org.mule.umo.UMOEvent;
 import org.mule.umo.UMOMessage;
-import org.mule.umo.transformer.TransformerException;
-import org.mule.umo.endpoint.UMOImmutableEndpoint;
 import org.mule.umo.endpoint.UMOEndpointURI;
-import org.mule.impl.MuleMessage;
+import org.mule.umo.endpoint.UMOImmutableEndpoint;
+import org.mule.umo.transformer.TransformerException;
 
 import javax.management.*;
 import java.io.IOException;
@@ -38,10 +39,9 @@ public class JmxAttributeDispatcher extends AbstractMessageDispatcher {
         JmxConnector c = (JmxConnector) connector;
         UMOEndpointURI uri = endpoint.getEndpointURI();
         Object value = event.getTransformedMessage();
-        c.setAttribute(
-                UriUtils.createObjectName(uri),
-                new Attribute(UriUtils.createAttributeName(uri), value)
-        );
+        Object nullablePayload = value instanceof NullPayload ? null : value;
+        Attribute attribute = new Attribute(UriUtils.createAttributeName(uri), nullablePayload);
+        c.setAttribute(UriUtils.createObjectName(uri), attribute);
         return value;
     }
 

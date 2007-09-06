@@ -4,10 +4,7 @@ import org.mule.providers.AbstractConnector;
 import org.mule.providers.DefaultMessageAdapter;
 import org.mule.umo.lifecycle.InitialisationException;
 import org.mule.umo.UMOException;
-import org.mule.umo.UMOComponent;
 import org.mule.umo.MessagingException;
-import org.mule.umo.endpoint.UMOEndpoint;
-import org.mule.umo.provider.UMOMessageReceiver;
 import org.mule.umo.provider.UMOMessageAdapter;
 
 import javax.management.*;
@@ -27,6 +24,16 @@ import java.io.IOException;
  * jmx:connector/event
  */
 public class JmxConnector extends AbstractConnector {
+    public static final String URIPROP_FILTER_NOTIFTYPE = "types";
+    public static final String URIPROP_FILTER_ATTRIBUTES = "attributes";
+    public static final String PROP_HANDBACK = "jmx.notification.handback";
+    public static final String PROP_SEQ_NUMBER = "jmx.notification.sequenceNumber";
+    public static final String PROP_TIMESTAMP = "jmx.notification.timestamp";
+    public static final String PROP_TYPE = "jmx.notification.type";
+    public static final String PROP_MESSAGE = "jmx.notification.message";
+    public static final String PROP_SOURCE = "jmx.notification.source";
+    public static final String PROP_USER_DATA = "jmx.notification.userData";
+
     private String serviceUrl;
     private Map<String,?> environment;
     private Subject delegationSubject;
@@ -39,10 +46,6 @@ public class JmxConnector extends AbstractConnector {
 
     public String getProtocol() {
         return "jmx";
-    }
-
-    protected UMOMessageReceiver createReceiver(UMOComponent component, UMOEndpoint endpoint) throws Exception {
-        return super.createReceiver(component, endpoint);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     protected void doInitialise() throws InitialisationException {
@@ -111,7 +114,7 @@ public class JmxConnector extends AbstractConnector {
 
     public UMOMessageAdapter getMessageAdapter(Object message) throws MessagingException {
         if (message instanceof Notification) {
-            return new NotificationAdapter((Notification) message);
+            return new NotificationAdapter(message);
         }
         return new DefaultMessageAdapter(message);  
     }
@@ -122,8 +125,8 @@ public class JmxConnector extends AbstractConnector {
 
 
 
-    void addNotificationListener(ObjectName name, NotificationListener l, NotificationFilter filter) throws InstanceNotFoundException, IOException {
-        connection.addNotificationListener(name, l, filter, "a handback...");
+    void addNotificationListener(ObjectName name, NotificationListener l, NotificationFilter filter, Object handback) throws InstanceNotFoundException, IOException {
+        connection.addNotificationListener(name, l, filter, handback);
     }
 
     void removeNotificationListener(ObjectName name, NotificationListener l) throws ListenerNotFoundException, InstanceNotFoundException, IOException {
@@ -138,7 +141,7 @@ public class JmxConnector extends AbstractConnector {
         connection.setAttribute(name, attribute);
     }
 
-    Object getAttribute(ObjectName name, String attribute) throws InstanceNotFoundException, IOException, InvalidAttributeValueException, ReflectionException, AttributeNotFoundException, MBeanException {
+    Object getAttribute(ObjectName name, String attribute) throws InstanceNotFoundException, IOException, ReflectionException, AttributeNotFoundException, MBeanException {
         return connection.getAttribute(name, attribute);
     }
 
@@ -156,12 +159,12 @@ public class JmxConnector extends AbstractConnector {
 
             return signature;
         }
-        throw new RuntimeException(""); // TODO: add proper exception
+        throw new RuntimeException("did not guess the signature"); // TODO: add proper exception
     }
 
     private boolean checkSignatureCompatible(MBeanParameterInfo[] signature, Object[] params) throws ClassNotFoundException {
         if (params==null && signature.length==0) return true;
-        if (signature.length != params.length) return false;
+        if (params==null || signature.length != params.length) return false;
 
         for (int i = 0; i < signature.length; i++) {
             Class paramClass = params[i] == null ? null : params[i].getClass();
