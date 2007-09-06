@@ -1,14 +1,26 @@
+/*
+ * $Id$
+ * --------------------------------------------------------------------------------------
+ * Copyright (c) MuleSource, Inc.  All rights reserved.  http://www.mulesource.com
+ *
+ * The software in this package is published under the terms of the CPAL v1.0
+ * license, a copy of which has been included with this distribution in the
+ * LICENSE.txt file.
+ */
+
 package org.mule.providers.jmx;
 
-import javax.management.Notification;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import javax.management.Notification;
 
 /**
  * @author Dimitar Dimitrov
  */
 public class NotificationReceiverStub {
-    private final LinkedBlockingDeque<Notification> notificationPostbox = new LinkedBlockingDeque<Notification>();
+    private final BlockingQueue<Notification> notificationPostbox = new LinkedBlockingQueue<Notification>();
 
     public void receive(Notification n) {
         notificationPostbox.add(n);

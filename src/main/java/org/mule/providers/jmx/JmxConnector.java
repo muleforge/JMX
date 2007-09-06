@@ -1,21 +1,32 @@
+/*
+ * $Id$
+ * --------------------------------------------------------------------------------------
+ * Copyright (c) MuleSource, Inc.  All rights reserved.  http://www.mulesource.com
+ *
+ * The software in this package is published under the terms of the CPAL v1.0
+ * license, a copy of which has been included with this distribution in the
+ * LICENSE.txt file.
+ */
+
 package org.mule.providers.jmx;
 
 import org.mule.providers.AbstractConnector;
 import org.mule.providers.DefaultMessageAdapter;
-import org.mule.umo.lifecycle.InitialisationException;
-import org.mule.umo.UMOException;
 import org.mule.umo.MessagingException;
+import org.mule.umo.UMOException;
+import org.mule.umo.lifecycle.InitialisationException;
 import org.mule.umo.provider.UMOMessageAdapter;
 
-import javax.management.*;
-import javax.management.remote.JMXServiceURL;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXConnector;
-import javax.security.auth.Subject;
-import java.lang.management.ManagementFactory;
-import java.util.Map;
-import java.util.Arrays;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.Map;
+
+import javax.management.*;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import javax.security.auth.Subject;
 
 /**
  * jmx:Domain:type=Object,id=Instance/property/State
