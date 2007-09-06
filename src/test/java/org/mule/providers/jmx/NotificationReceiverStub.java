@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Dimitar Dimitrov
  */
-class NotificationReceiverStub {
+public class NotificationReceiverStub {
     private final LinkedBlockingDeque<Notification> notificationPostbox = new LinkedBlockingDeque<Notification>();
 
     public void receive(Notification n) {
