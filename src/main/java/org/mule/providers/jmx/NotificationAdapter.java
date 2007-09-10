@@ -17,8 +17,6 @@ import javax.management.Notification;
 
 /**
  * @author Dimitar Dimitrov
- * TODO: externalize propnames to a special JMXConstants class
- *       @link org.mule.providers.jms.JMSConstants.
  */
 class NotificationAdapter extends AbstractMessageAdapter {
     private final Notification notification;
@@ -29,12 +27,12 @@ class NotificationAdapter extends AbstractMessageAdapter {
         }
         this.notification = (Notification) message;
         id = String.valueOf(getSequenceNumber());
-        setLongProperty(JmxConnector.PROP_SEQ_NUMBER, notification.getSequenceNumber());
-        setLongProperty(JmxConnector.PROP_TIMESTAMP, notification.getTimeStamp());
-        setStringProperty(JmxConnector.PROP_TYPE, notification.getType());
-        setStringProperty(JmxConnector.PROP_MESSAGE, notification.getMessage());
-        setProperty(JmxConnector.PROP_SOURCE, notification.getSource());
-        setProperty(JmxConnector.PROP_USER_DATA, notification.getUserData());
+        setLongProperty(JmxConstants.PROP_SEQ_NUMBER, notification.getSequenceNumber());
+        setLongProperty(JmxConstants.PROP_TIMESTAMP, notification.getTimeStamp());
+        setStringProperty(JmxConstants.PROP_TYPE, notification.getType());
+        setStringProperty(JmxConstants.PROP_MESSAGE, notification.getMessage());
+        setProperty(JmxConstants.PROP_SOURCE, notification.getSource());
+        setProperty(JmxConstants.PROP_USER_DATA, notification.getUserData());
     }
 
     public String getPayloadAsString(String encoding) throws Exception {

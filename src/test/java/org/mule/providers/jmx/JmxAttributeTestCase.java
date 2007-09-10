@@ -50,7 +50,7 @@ public class JmxAttributeTestCase extends JmxMethodTestCase {
 
         stub.setExpected(null);
         response = client.receive("jmx:attribute://Test:type=Stub/Expected", 1000);
-        assertEquals(NullPayload.getInstance(), response.getPayload()); // TODO: Add to docs, no way arround this
+        assertEquals(NullPayload.getInstance(), response.getPayload());
 
         stub.setExpected(new Date(0));
         response = client.receive("jmx:attribute://Test:type=Stub/Expected", 1000);

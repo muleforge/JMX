@@ -19,7 +19,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class ObjectToArrayTransformer extends AbstractTransformer {
+public class ObjectToArray extends AbstractTransformer {
     private int forceLength = -1;
 
     public int getForceLength() {

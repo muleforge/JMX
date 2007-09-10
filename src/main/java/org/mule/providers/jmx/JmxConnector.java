@@ -10,6 +10,7 @@
 
 package org.mule.providers.jmx;
 
+import org.mule.impl.NoSatisfiableMethodsException;
 import org.mule.providers.AbstractConnector;
 import org.mule.providers.DefaultMessageAdapter;
 import org.mule.umo.MessagingException;
@@ -19,7 +20,9 @@ import org.mule.umo.provider.UMOMessageAdapter;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import javax.management.*;
@@ -28,23 +31,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import javax.security.auth.Subject;
 
-/**
- * jmx:Domain:type=Object,id=Instance/property/State
- * jmx:Domain:type=Object,id=Instance/event/Filter=*
- * jmx:Domain:type=Object,id=Instance/action/Method
- * jmx:connector/event
- */
 public class JmxConnector extends AbstractConnector {
-    public static final String URIPROP_FILTER_NOTIFTYPE = "types";
-    public static final String URIPROP_FILTER_ATTRIBUTES = "attributes";
-    public static final String PROP_HANDBACK = "jmx.notification.handback";
-    public static final String PROP_SEQ_NUMBER = "jmx.notification.sequenceNumber";
-    public static final String PROP_TIMESTAMP = "jmx.notification.timestamp";
-    public static final String PROP_TYPE = "jmx.notification.type";
-    public static final String PROP_MESSAGE = "jmx.notification.message";
-    public static final String PROP_SOURCE = "jmx.notification.source";
-    public static final String PROP_USER_DATA = "jmx.notification.userData";
-
     private String serviceUrl;
     private Map<String,?> environment;
     private Subject delegationSubject;
@@ -135,17 +122,77 @@ public class JmxConnector extends AbstractConnector {
     }
 
 
-
-    void addNotificationListener(ObjectName name, NotificationListener l, NotificationFilter filter, Object handback) throws InstanceNotFoundException, IOException {
-        connection.addNotificationListener(name, l, filter, handback);
+    /**
+     * <p>Adds a listener to a registered MBean or the connector.</p>
+     *
+     * <p> A notification emitted by an MBean will be forwarded by the
+     * MBeanServer to the listener.<p>
+     *
+     * @param name The name of the MBean on which the listener should
+     *        be added. If null and the connector is a remote MBean
+     *        server, we will listen to the connector notifications.
+     * @param listener The listener object which will handle the
+     *        notifications emitted by the registered MBean.
+     * @param filter The filter object. If filter is null, no
+     *        filtering will be performed before handling notifications.
+     * @param handback The context to be sent to the listener when a
+     *         notification is emitted.
+     *
+     * @exception InstanceNotFoundException The MBean name provided
+     *            does not match any of the registered MBeans.
+     * @exception IOException A communication problem occurred when
+     *            talking to the MBean server.
+     *
+     * @see MBeanServerConnection#addNotificationListener(
+     *      javax.management.ObjectName,
+     *      javax.management.NotificationListener,
+     *      javax.management.NotificationFilter, Object)
+     * @see JMXConnector#addConnectionNotificationListener(
+     *      javax.management.NotificationListener,
+     *      javax.management.NotificationFilter, Object)
+     */
+    protected void addNotificationListener(ObjectName name, NotificationListener l, NotificationFilter filter, Object handback) throws InstanceNotFoundException, IOException {
+        if (name==null && connector!=null) {
+            connector.addConnectionNotificationListener(l, filter, handback);
+        } else if (name!=null) {
+            connection.addNotificationListener(name, l, filter, handback);
+        }
     }
 
+    /**
+     * <p>Removes a listener from a registered MBean.</p>
+     *
+     * <P> If the listener is registered more than once, perhaps with
+     * different filters or callbacks, this method will remove all
+     * those registrations.
+     *
+     * @param name The name of the MBean on which the listener should
+     *        be removed. If null and the connector is a remote MBean
+     *        server, we will stop listening listen to the connector
+     *        notifications.
+     * @param listener The object name of the listener to be removed.
+     *
+     * @exception InstanceNotFoundException The MBean name provided
+     *            does not match any of the registered MBeans.
+     * @exception ListenerNotFoundException The listener is not
+     *            registered in the MBean.
+     * @exception IOException A communication problem occurred when
+     *            talking to the MBean server.
+     *
+     * @see MBeanServerConnection#removeNotificationListener(
+     *      javax.management.ObjectName,
+     *      javax.management.NotificationListener)
+     * @see JMXConnector#removeConnectionNotificationListener(
+     *      javax.management.NotificationListener)
+     */
     void removeNotificationListener(ObjectName name, NotificationListener l) throws ListenerNotFoundException, InstanceNotFoundException, IOException {
-        connection.removeNotificationListener(name, l);
-    }
+        if (name==null && connector==null) return;
 
-    Object invoke(ObjectName name, String operationName, Object... params) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, IntrospectionException, ClassNotFoundException {
-        return connection.invoke(name, operationName, params, guessSignature(name, operationName, params));
+        if (name==null) {
+            connector.removeConnectionNotificationListener(l);
+        } else {
+            connection.removeNotificationListener(name, l);
+        }
     }
 
     void setAttribute(ObjectName name, Attribute attribute) throws InstanceNotFoundException, IOException, InvalidAttributeValueException, ReflectionException, AttributeNotFoundException, MBeanException {
@@ -156,7 +203,8 @@ public class JmxConnector extends AbstractConnector {
         return connection.getAttribute(name, attribute);
     }
 
-    private String[] guessSignature(ObjectName name, String operationName, Object[] params) throws IntrospectionException, InstanceNotFoundException, IOException, ReflectionException, ClassNotFoundException {
+    Object invoke(ObjectName name, String operationName, Object... params) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, IntrospectionException, ClassNotFoundException, NoSatisfiableMethodsException, NoSatisfiableMBeanOperationsException, TooManySatisfiableMBeanOperationsException {
+        List<String[]> signatures = new ArrayList<String[]>();
         MBeanInfo beanInfo = connection.getMBeanInfo(name);
         for (MBeanOperationInfo operationInfo : beanInfo.getOperations()) {
             if (!operationInfo.getName().equals(operationName)) continue;
@@ -167,10 +215,16 @@ public class JmxConnector extends AbstractConnector {
             for (int i = 0; i < signature.length; i++) {
                 signature[i] = parameterInfos[i].getType();
             }
-
-            return signature;
+            signatures.add(signature);
         }
-        throw new RuntimeException("did not guess the signature"); // TODO: add proper exception
+        if (signatures.isEmpty()) {
+            throw new NoSatisfiableMBeanOperationsException(beanInfo, operationName, Arrays.asList(params));
+        }
+        if (signatures.size()>1){
+            throw new TooManySatisfiableMBeanOperationsException(beanInfo, operationName, Arrays.asList(params), signatures);
+        }
+        return connection.invoke(name, operationName, params, signatures.get(0));
+
     }
 
     private boolean checkSignatureCompatible(MBeanParameterInfo[] signature, Object[] params) throws ClassNotFoundException {

@@ -17,11 +17,6 @@ import org.mule.umo.UMOEvent;
 import org.mule.umo.UMOMessage;
 import org.mule.umo.endpoint.UMOEndpointURI;
 import org.mule.umo.endpoint.UMOImmutableEndpoint;
-import org.mule.umo.transformer.TransformerException;
-
-import java.io.IOException;
-
-import javax.management.*;
 
 public class JmxOperationDispatcher extends AbstractMessageDispatcher {
     public JmxOperationDispatcher(UMOImmutableEndpoint endpoint) {
@@ -44,7 +39,7 @@ public class JmxOperationDispatcher extends AbstractMessageDispatcher {
         return invoke(new MuleEvent(new MuleMessage(new Object[0]), endpoint, null, true));
     }
 
-    private MuleMessage invoke(UMOEvent event) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, MalformedObjectNameException, IntrospectionException, ClassNotFoundException, TransformerException {
+    private MuleMessage invoke(UMOEvent event) throws Exception {
         JmxConnector c = (JmxConnector) connector;
         UMOEndpointURI uri = endpoint.getEndpointURI();
         return new MuleMessage(c.invoke(

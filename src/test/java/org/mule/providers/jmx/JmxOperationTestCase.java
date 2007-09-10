@@ -21,14 +21,16 @@ import java.util.Date;
  * @author Dimitar Dimitrov
  */
 public class JmxOperationTestCase extends JmxMethodTestCase {
+    private static final int TIMEOUT_MS = 300;
+
     public void testDispatch() throws UMOException, InterruptedException {
         MuleClient client = new MuleClient();
         assertEquals(0, stub.getVersion());
         client.dispatch("jmx:operation://Test:type=Stub/callAsync", new Object[0], null);
 
-        assertEquals(1, stub.awaitAsyncCall(1, 1000));
+        assertEquals(1, stub.awaitAsyncCall(1, TIMEOUT_MS));
         client.dispatch("jmx:operation://Test:type=Stub/callAsync", new Object[0], null);
-        assertEquals(2, stub.awaitAsyncCall(2, 1000));
+        assertEquals(2, stub.awaitAsyncCall(2, TIMEOUT_MS));
     }
 
     public void testReceive() throws UMOException, InterruptedException {
@@ -36,15 +38,15 @@ public class JmxOperationTestCase extends JmxMethodTestCase {
         assertEquals(0, stub.getVersion());
 
         stub.setExpected(new Date(0));
-        UMOMessage response = client.receive("jmx:operation://Test:type=Stub/returnExpected", 1000);
+        UMOMessage response = client.receive("jmx:operation://Test:type=Stub/returnExpected", TIMEOUT_MS);
         assertEquals(new Date(0), response.getPayload());
-        assertEquals(2, stub.awaitAsyncCall(1, 1000));
+        assertEquals(2, stub.awaitAsyncCall(1, TIMEOUT_MS));
 
 
         stub.setExpected(new Date(1));
-        response = client.receive("jmx:operation://Test:type=Stub/returnExpected", 1000);
+        response = client.receive("jmx:operation://Test:type=Stub/returnExpected", TIMEOUT_MS);
         assertEquals(new Date(1), response.getPayload());
-        assertEquals(4, stub.awaitAsyncCall(2, 1000));
+        assertEquals(4, stub.awaitAsyncCall(2, TIMEOUT_MS));
     }
 
     public void testSend() throws UMOException {

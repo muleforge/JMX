@@ -23,12 +23,12 @@ import java.util.List;
  * @author Dimitar Dimitrov
  */
 @SuppressWarnings({"AssertEqualsBetweenInconvertibleTypes"})
-public class ObjectToArrayTransformerTestCase extends AbstractMuleTestCase {
-    private ObjectToArrayTransformer transformer;
+public class ObjectToArrayTestCase extends AbstractMuleTestCase {
+    private ObjectToArray transformer;
 
     @Override
     protected void doSetUp() throws Exception {
-        transformer = new ObjectToArrayTransformer();
+        transformer = new ObjectToArray();
     }
 
     @Override

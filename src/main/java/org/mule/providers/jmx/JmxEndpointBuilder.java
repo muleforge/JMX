@@ -20,6 +20,12 @@ import java.util.Properties;
  * @author Dimitar Dimitrov
  */
 public class JmxEndpointBuilder extends AbstractEndpointBuilder {
+    public static final String URIPROP_FILTER_NOTIFBEANS = "beans";
+    public static final String URIPROP_FILTER_NOTIFTYPE = "types";
+    public static final String URIPROP_FILTER_ATTRIBUTES = "attributes";
+    public static final String URI_AUTHORITY_CONNECTOR = "~connector";
+    public static final String URI_AUTHORITY_MBSDELEGATE = "~delegate";
+
     protected void setEndpoint(URI uri, Properties props) throws MalformedEndpointException {
         String path = uri.getPath();
         String authority = uri.getAuthority();

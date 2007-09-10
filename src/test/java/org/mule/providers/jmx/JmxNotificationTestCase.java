@@ -64,5 +64,5 @@ public class JmxNotificationTestCase extends JmxMethodTestCase {
         assertEquals("bar", receiver.retreive(JMX_TIMEOUT).getType());
     }
 
-    // TODO: test notification handbacks
+    // TODO: test notification handbacks (will require XML config files)
 }

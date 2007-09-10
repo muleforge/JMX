@@ -65,7 +65,7 @@ public class JmxNotificationReceiver extends AbstractMessageReceiver implements 
         try {
             Map<String, Object> props = new HashMap<String, Object>();
             if (handback!=null) {
-                props.put(JmxConnector.PROP_HANDBACK, handback);
+                props.put(JmxConstants.PROP_HANDBACK, handback);
             }
             routeMessage(new MuleMessage(notification, props));
         } catch (UMOException e) {

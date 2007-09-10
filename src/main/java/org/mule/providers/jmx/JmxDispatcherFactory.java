@@ -13,6 +13,7 @@ package org.mule.providers.jmx;
 import org.mule.providers.AbstractMessageDispatcherFactory;
 import org.mule.umo.provider.UMOMessageDispatcher;
 import org.mule.umo.endpoint.UMOImmutableEndpoint;
+import org.mule.umo.endpoint.MalformedEndpointException;
 import org.mule.umo.UMOException;
 
 public class JmxDispatcherFactory extends AbstractMessageDispatcherFactory {
@@ -23,7 +24,7 @@ public class JmxDispatcherFactory extends AbstractMessageDispatcherFactory {
         } else if (scheme.equals("operation")) {
             return new JmxOperationDispatcher(endpoint);
         } else {
-            throw new RuntimeException("Unsupported URI scheme: " + scheme); //TODO: add exception
+            throw new MalformedEndpointException("Unsupported URI scheme: " + scheme);
         }
     }
 }

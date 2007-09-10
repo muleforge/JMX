@@ -15,21 +15,21 @@
         </properties>
     </connector>
 
-    <connector name="JmxLocal" className="org.mule.providers.jmx.JmxConnector">
-        <!--
-        <properties>
-            <property name="serviceUrl" value="service:jmx:rmi://localhost/jndi/rmi://localhost:1099/jmx"/>
-            <container-property name="delegationSubject" reference="jmx.principal" container="spring" required="false"/>
-            <map name="environment">
-                <property name="user" value="username"/>
-                <property name="pass" value="secret"/>
-            </map>
-        </properties>
+<connector name="JmxLocal" className="org.mule.providers.jmx.JmxConnector">
+    <!--
+    <properties>
+        <property name="serviceUrl" value="service:jmx:rmi://localhost/jndi/rmi://localhost:1099/jmx"/>
+        <container-property name="delegationSubject" reference="jmx.principal" container="spring" required="false"/>
+        <map name="environment">
+            <property name="user" value="username"/>
+            <property name="pass" value="secret"/>
+        </map>
+    </properties>
 -->
-    </connector>
+</connector>
 
     <transformers>
-        <transformer name="SIGNATURE" className="org.mule.providers.jmx.transformers.ObjectToArrayTransformer">
+        <transformer name="SIGNATURE" className="org.mule.providers.jmx.transformers.ObjectToArray">
             <properties>
                 <property name="forceLength" value="0"/>
             </properties>
