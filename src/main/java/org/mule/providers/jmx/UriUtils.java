@@ -17,20 +17,22 @@ import org.mule.umo.transformer.TransformerException;
 import java.util.Properties;
 
 import javax.management.*;
-import javax.management.remote.JMXConnectionNotification;
 import javax.management.relation.MBeanServerNotificationFilter;
+import javax.management.remote.JMXConnectionNotification;
 import org.apache.log4j.Logger;
 
 class UriUtils {
     private static final Logger logger = Logger.getLogger(UriUtils.class);
 
-    private UriUtils() { }
+    private UriUtils() {
+    }
 
     public static ObjectName createObjectName(UMOEndpointURI uri) throws MalformedObjectNameException {
         String auth = uri.getAuthority();
         if (auth == null) throw new NullPointerException("ObjectName cannot be created from null string!");
         if (JmxEndpointBuilder.URI_AUTHORITY_CONNECTOR.equals(auth)) return null;
-        if (JmxEndpointBuilder.URI_AUTHORITY_MBSDELEGATE.equals(auth)) return new ObjectName("JMImplementation:type=MBeanServerDelegate");
+        if (JmxEndpointBuilder.URI_AUTHORITY_MBSDELEGATE.equals(auth))
+            return new ObjectName("JMImplementation:type=MBeanServerDelegate");
         return new ObjectName(auth);
     }
 
@@ -42,7 +44,7 @@ class UriUtils {
         return uri.getResourceInfo();
     }
 
-    
+
     public static Object[] createParams(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
         return (Object[]) e.getTransformedMessage();
     }
@@ -54,19 +56,13 @@ class UriUtils {
         boolean isConnector = JmxEndpointBuilder.URI_AUTHORITY_CONNECTOR.equals(auth);
         boolean isDelegate = JmxEndpointBuilder.URI_AUTHORITY_MBSDELEGATE.equals(auth);
 
-        if (isDelegate && params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_NOTIFBEANS)){
-        MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
+        if (isDelegate && params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_NOTIFBEANS)) {
+            MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
             String beansStr = params.getProperty(JmxEndpointBuilder.URIPROP_FILTER_NOTIFBEANS);
-            if (beansStr!=null) {
+            if (beansStr != null) {
                 setNotificationMBeans(filter, beansStr.split(";"));
             }
 
-            setNotificationTypes(filter, params, isDelegate, isConnector);
-            return filter;
-        }
-
-        if (params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_NOTIFTYPE)) {
-            NotificationFilterSupport filter = new NotificationFilterSupport();
             setNotificationTypes(filter, params, isDelegate, isConnector);
             return filter;
         }
@@ -79,11 +75,17 @@ class UriUtils {
             return filter;
         }
 
+        if (params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_NOTIFTYPE)) {
+            NotificationFilterSupport filter = new NotificationFilterSupport();
+            setNotificationTypes(filter, params, isDelegate, isConnector);
+            return filter;
+        }
+
         return null;
     }
 
     private static void setNotificationMBeans(MBeanServerNotificationFilter filter, String[] onames) throws MalformedObjectNameException {
-        if (onames.length==0) return;
+        if (onames.length == 0) return;
         if (onames[0].equals("!*")) {
             filter.disableAllObjectNames();
         }
@@ -91,6 +93,14 @@ class UriUtils {
             boolean shallEnable = !oname.startsWith("!");
             if (shallEnable) {
                 oname = oname.substring(1);
+            }
+            if ("*".equals(oname)) {
+                if (shallEnable) {
+                    filter.enableAllObjectNames();
+                } else {
+                    filter.disableAllObjectNames();
+                }
+                continue;
             }
             try {
                 ObjectName objName = new ObjectName(oname);
@@ -107,16 +117,16 @@ class UriUtils {
 
     private static void setNotificationTypes(NotificationFilterSupport filter, Properties params, boolean translateDelegateAliases, boolean translateConnectorAliases) {
         String typesListStr = params.getProperty(JmxEndpointBuilder.URIPROP_FILTER_NOTIFTYPE);
-        if (typesListStr==null) return;
+        if (typesListStr == null) return;
         String[] typePrefixes = typesListStr.split(";");
         for (String typePrefix : typePrefixes) {
-            if (translateConnectorAliases) typePrefix = enableConnectorNotification(typePrefix);
+            if (translateConnectorAliases) typePrefix = translateConnectorNotificationType(typePrefix);
             if (translateDelegateAliases) typePrefix = translateDelegateNotificationType(typePrefix);
             filter.enableType(typePrefix);
         }
     }
 
-    private static String enableConnectorNotification(String typePrefix) {
+    private static String translateConnectorNotificationType(String typePrefix) {
         if (".opened".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.OPENED;
         if (".closed".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.CLOSED;
         if (".failed".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.FAILED;
