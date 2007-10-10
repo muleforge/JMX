@@ -297,7 +297,12 @@ public class JmxConnector extends AbstractConnector {
     }
 
     Object[] createParams(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
-        Object message = e.getTransformedMessage();
+        String raw = uri.getUserParams().getProperty("raw");
+
+        Object message = raw == null || "false".equalsIgnoreCase(raw)
+                ? e.getTransformedMessage()
+                : e.getMessage().getPayload();
+
         if (message instanceof NullPayload) {
             return null;
         } else if (message instanceof Object[]) {
