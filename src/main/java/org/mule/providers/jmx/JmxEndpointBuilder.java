@@ -16,22 +16,22 @@ import org.mule.umo.endpoint.MalformedEndpointException;
 import java.net.URI;
 import java.util.Properties;
 
-/**
- * @author Dimitar Dimitrov
- */
+/** @author Dimitar Dimitrov */
 public class JmxEndpointBuilder extends AbstractEndpointBuilder {
     public static final String URIPROP_FILTER_NOTIFBEANS = "beans";
     public static final String URIPROP_FILTER_NOTIFTYPE = "types";
     public static final String URIPROP_FILTER_ATTRIBUTES = "attributes";
+    public static final String URIPROP_SIGNATURE = "signature";
+    public static final String URIPROP_RAW = "raw";
     public static final String URI_AUTHORITY_CONNECTOR = "~connector";
     public static final String URI_AUTHORITY_MBSDELEGATE = "~delegate";
 
     protected void setEndpoint(URI uri, Properties props) throws MalformedEndpointException {
         String path = uri.getPath();
         String authority = uri.getAuthority();
-        address = uri.getScheme() + "://" + (authority==null ? "" : authority) + (path==null ? "" : path);
-        if (path!=null && path.startsWith("/")) {
-            props.put("resourceInfo",  path.substring(1));
+        address = uri.getScheme() + "://" + (authority == null ? "" : authority) + (path == null ? "" : path);
+        if (path != null && path.startsWith("/")) {
+            props.put("resourceInfo", path.substring(1));
         }
     }
 }

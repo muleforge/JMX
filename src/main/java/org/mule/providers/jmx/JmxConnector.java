@@ -242,20 +242,8 @@ public class JmxConnector extends AbstractConnector {
         String operationName = createOperationName(uri);
         Object[] params = createParams(uri, event);
 
-        // Guess signatures
-        List<String[]> signatures = new ArrayList<String[]>();
         MBeanInfo beanInfo = connection.getMBeanInfo(name);
-        for (MBeanOperationInfo operationInfo : beanInfo.getOperations()) {
-            if (!operationInfo.getName().equals(operationName)) continue;
-            MBeanParameterInfo[] parameterInfos = operationInfo.getSignature();
-            if (!checkSignatureCompatible(parameterInfos, params)) continue;
-
-            String[] signature = new String[parameterInfos.length];
-            for (int i = 0; i < signature.length; i++) {
-                signature[i] = parameterInfos[i].getType();
-            }
-            signatures.add(signature);
-        }
+        List<String[]> signatures = lookupSignatures(beanInfo, operationName, params, uri.getParams().getProperty(JmxEndpointBuilder.URIPROP_SIGNATURE));
 
         if (signatures.isEmpty()) {
             throw new NoSatisfiableMBeanOperationsException(beanInfo, operationName, Arrays.asList(params));
@@ -266,6 +254,35 @@ public class JmxConnector extends AbstractConnector {
         }
 
         return connection.invoke(name, operationName, params, signatures.get(0));
+    }
+
+    private List<String[]> lookupSignatures(MBeanInfo beanInfo, String operationName, Object[] params, String signatureHint) throws ClassNotFoundException {
+        String[] hint = signatureHint == null ? null : signatureHint.split(";");
+
+        List<String[]> signatures = new ArrayList<String[]>();
+
+        next_signature:
+        for (MBeanOperationInfo operationInfo : beanInfo.getOperations()) {
+            if (!operationInfo.getName().equals(operationName)) continue;
+
+            MBeanParameterInfo[] parameterInfos = operationInfo.getSignature();
+            if (!checkSignatureCompatible(parameterInfos, params)) continue;
+
+            String[] signature = new String[parameterInfos.length];
+            if (hint != null && signature.length != hint.length) continue;
+
+            for (int i = 0; i < signature.length; i++) {
+                String classname = parameterInfos[i].getType();
+                signature[i] = classname;
+                if (hint != null && !classname.endsWith(hint[i])) {
+                    continue next_signature;
+                }
+            }
+
+            signatures.add(signature);
+        }
+
+        return signatures;
     }
 
     private boolean checkSignatureCompatible(MBeanParameterInfo[] signature, Object[] params) throws ClassNotFoundException {
@@ -297,7 +314,7 @@ public class JmxConnector extends AbstractConnector {
     }
 
     Object[] createParams(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
-        String raw = uri.getUserParams().getProperty("raw");
+        String raw = uri.getUserParams().getProperty(JmxEndpointBuilder.URIPROP_RAW);
 
         Object message = raw == null || "false".equalsIgnoreCase(raw)
                 ? e.getTransformedMessage()
