@@ -98,6 +98,26 @@ public class JmxConnector extends AbstractConnector {
         }
     }
 
+    public UMOMessageAdapter getMessageAdapter(Object message) throws MessagingException {
+        if (message instanceof Notification) {
+            return new NotificationAdapter(message);
+        }
+        return new DefaultMessageAdapter(message);
+    }
+
+    /**
+     * <p>The MBean aliases are used when resolving the endpoint URI.
+     * If the URI authority matches an alias, the registered ObjectName is used.
+     * Otherwise, we assume that the authority is a strong representation of ObjectName.</p>
+     * <p>This method deviates from the regular setter contract, because it appends
+     * the content of the argument to the existing state. This makes more sense in the
+     * context of configuration as wwe usually want to add our mappings to the defaults
+     * and not to replace them. If particular key maps to null, the mapping is removed.<p>
+     *
+     * @param mbeanAliases a map from string identifiers to string representations
+     *                     of ObjectNames or nulls.
+     * @throws MalformedObjectNameException if a value is not a valid object name or null.
+     */
     public void setMbeanAliases(Map<String, String> mbeanAliases) throws MalformedObjectNameException {
         for (Map.Entry<String, String> entry : mbeanAliases.entrySet()) {
             if (entry.getValue() == null) {
@@ -108,33 +128,52 @@ public class JmxConnector extends AbstractConnector {
         }
     }
 
+    /** The JMX service URL if it is a remote connector. Null if it is local. */
     public String getServiceUrl() {
         return serviceUrl;
     }
 
+    /**
+     * Defines the MBean server to connect to.
+     *
+     * @param serviceUrl - JMX service URL for remote connection. Null if it is local.
+     */
     public void setServiceUrl(String serviceUrl) {
         this.serviceUrl = serviceUrl;
     }
 
+    /**
+     * Gets the environment used for establishing JMX connection.
+     *
+     * @return String to Object map passed to the connector.connect()
+     */
     public Map<String, ?> getEnvironment() {
         return environment;
     }
 
+    /**
+     * Sets the environment used for establishing JMX connection.
+     *
+     * @param environment String to Object map passed to the connector.connect()
+     */
     public void setEnvironment(Map<String, ?> environment) {
         this.environment = environment;
     }
 
+    /**
+     * Sets the JAAS delegation subject on behalf of which we log in.
+     *
+     * @return the JAAS delegation subject.
+     */
     public Subject getDelegationSubject() {
         return delegationSubject;
     }
 
-    public UMOMessageAdapter getMessageAdapter(Object message) throws MessagingException {
-        if (message instanceof Notification) {
-            return new NotificationAdapter(message);
-        }
-        return new DefaultMessageAdapter(message);
-    }
-
+    /**
+     * Gets the JAAS delegation subject on behalf of which we log in.
+     *
+     * @param delegationSubject the JAAS delegation subject
+     */
     public void setDelegationSubject(Subject delegationSubject) {
         this.delegationSubject = delegationSubject;
     }
@@ -215,6 +254,13 @@ public class JmxConnector extends AbstractConnector {
         }
     }
 
+    /**
+     * Sets the attribute denoted by the endpoint to the payload.
+     *
+     * @param endpoint an attribute-type endpoint
+     * @param event    wrapping the value to which we want to set the attribute.
+     * @return the actual extracted value which was used.
+     */
     public Object setAttribute(UMOImmutableEndpoint endpoint, UMOEvent event) throws InstanceNotFoundException, IOException, InvalidAttributeValueException, ReflectionException, AttributeNotFoundException, MBeanException, MalformedObjectNameException, TransformerException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
         String attributeName = createAttributeName(uri);
@@ -228,7 +274,12 @@ public class JmxConnector extends AbstractConnector {
         return value;
     }
 
-
+    /**
+     * Gets the value of an attribute denoted by the endpoint.
+     *
+     * @param endpoint an attribute-type endpoint
+     * @return the attribute value.
+     */
     public Object getAttribute(UMOImmutableEndpoint endpoint) throws InstanceNotFoundException, IOException, ReflectionException, AttributeNotFoundException, MBeanException, MalformedObjectNameException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
         ObjectName objectName = createObjectName(uri);
@@ -236,6 +287,13 @@ public class JmxConnector extends AbstractConnector {
         return connection.getAttribute(objectName, attributeName);
     }
 
+    /**
+     * Invokes the operation denoted by the endpoint, passing the payload as argument.
+     *
+     * @param endpoint an operation-type endpoint
+     * @param event    wrapping the value(s) to which we want to pass as argument.
+     * @return the result of the operation.
+     */
     public Object invoke(UMOImmutableEndpoint endpoint, UMOEvent event) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, IntrospectionException, ClassNotFoundException, NoSatisfiableMethodsException, NoSatisfiableMBeanOperationsException, TooManySatisfiableMBeanOperationsException, MalformedObjectNameException, TransformerException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
         ObjectName name = createObjectName(uri);
@@ -313,7 +371,7 @@ public class JmxConnector extends AbstractConnector {
         return uri.getResourceInfo();
     }
 
-    Object[] createParams(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
+    private Object[] createParams(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
         String raw = uri.getUserParams().getProperty(JmxEndpointBuilder.URIPROP_RAW);
 
         Object message = raw == null || "false".equalsIgnoreCase(raw)
