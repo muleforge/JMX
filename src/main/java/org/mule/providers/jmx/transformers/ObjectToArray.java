@@ -10,8 +10,8 @@
 
 package org.mule.providers.jmx.transformers;
 
-import org.mule.config.i18n.MessageFactory;
 import org.mule.providers.NullPayload;
+import org.mule.providers.jmx.JmxMessages;
 import org.mule.transformers.AbstractTransformer;
 import org.mule.umo.transformer.TransformerException;
 
@@ -26,10 +26,7 @@ public class ObjectToArray extends AbstractTransformer {
         if (componentType != null) {
             if (componentType.isPrimitive()) {
                 // TODO: support boxing of primitive arrays
-                throw new TransformerException(
-                        MessageFactory.createStaticMessage("Boxing of prmitive arrays is not supported yet."),
-                        this
-                );
+                throw new TransformerException(JmxMessages.primitiveArraysNotSupported(), this);
             }
             return src;
         }

@@ -14,6 +14,8 @@ import org.mule.impl.NoSatisfiableMethodsException;
 import org.mule.providers.AbstractConnector;
 import org.mule.providers.DefaultMessageAdapter;
 import org.mule.providers.NullPayload;
+import static org.mule.providers.jmx.JmxMessages.noSatisfiableOperations;
+import static org.mule.providers.jmx.JmxMessages.tooManySatisfiableOperations;
 import org.mule.umo.MessagingException;
 import org.mule.umo.UMOEvent;
 import org.mule.umo.UMOException;
@@ -294,7 +296,7 @@ public class JmxConnector extends AbstractConnector {
      * @param event    wrapping the value(s) to which we want to pass as argument.
      * @return the result of the operation.
      */
-    public Object invoke(UMOImmutableEndpoint endpoint, UMOEvent event) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, IntrospectionException, ClassNotFoundException, NoSatisfiableMethodsException, NoSatisfiableMBeanOperationsException, TooManySatisfiableMBeanOperationsException, MalformedObjectNameException, TransformerException {
+    public Object invoke(UMOImmutableEndpoint endpoint, UMOEvent event) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, IntrospectionException, ClassNotFoundException, NoSatisfiableMethodsException, JmxEndpointResolutionException, MalformedObjectNameException, TransformerException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
         ObjectName name = createObjectName(uri);
         String operationName = createOperationName(uri);
@@ -304,11 +306,11 @@ public class JmxConnector extends AbstractConnector {
         List<String[]> signatures = lookupSignatures(beanInfo, operationName, params, uri.getParams().getProperty(JmxEndpointBuilder.URIPROP_SIGNATURE));
 
         if (signatures.isEmpty()) {
-            throw new NoSatisfiableMBeanOperationsException(beanInfo, operationName, Arrays.asList(params));
+            throw new JmxEndpointResolutionException(noSatisfiableOperations(beanInfo, operationName, Arrays.asList(params)));
         }
 
         if (signatures.size() > 1) {
-            throw new TooManySatisfiableMBeanOperationsException(beanInfo, operationName, Arrays.asList(params), signatures);
+            throw new JmxEndpointResolutionException(tooManySatisfiableOperations(beanInfo, operationName, Arrays.asList(params), signatures));
         }
 
         return connection.invoke(name, operationName, params, signatures.get(0));
