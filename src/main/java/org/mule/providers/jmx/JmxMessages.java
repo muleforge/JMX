@@ -11,7 +11,7 @@ package org.mule.providers.jmx;
 
 import org.mule.config.i18n.Message;
 import org.mule.config.i18n.MessageFactoryHack;
-import static org.mule.util.StringMessageUtils.toString;
+import org.mule.util.StringMessageUtils;
 
 import java.util.List;
 
@@ -21,11 +21,20 @@ public class JmxMessages extends MessageFactoryHack {
     private static final String BUNDLE_PATH = getBundlePath("jmx");
 
     public static Message noSatisfiableOperations(MBeanInfo beanInfo, String operationName, List<Object> params) {
-        return createMessage(BUNDLE_PATH, 2, beanInfo, operationName, toString(params));
+        return createMessage(BUNDLE_PATH, 2,
+                beanInfo,
+                operationName,
+                StringMessageUtils.toString(params)
+        );
     }
 
     public static Message tooManySatisfiableOperations(MBeanInfo beanInfo, String operationName, List<Object> params, List<String[]> signatures) {
-        return createMessageY(BUNDLE_PATH, 3, beanInfo, operationName, toString(params), toString(signatures));
+        return createMessageY(BUNDLE_PATH, 3,
+                beanInfo,
+                operationName,
+                StringMessageUtils.toString(params),
+                StringMessageUtils.toString(signatures)
+        );
     }
 
     public static Message primitiveArraysNotSupported() {
