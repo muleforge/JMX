@@ -26,25 +26,20 @@ import java.lang.management.ManagementFactory;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-/**
- * @author Dimitar Dimitrov
- */
+/** @author Dimitar Dimitrov */
 abstract class JmxMethodTestCase extends FunctionalTestCase {
     static final String ONAME = "Test:type=Stub";
     Stub stub;
 
     protected void doPreFunctionalSetUp() throws Exception {
-        stub = new Stub();
-        ManagementFactory.getPlatformMBeanServer().registerMBean(stub, new ObjectName(ONAME));
-    }
-
-    protected void doFunctionalTearDown() throws Exception {
-        super.doFunctionalTearDown();
         ObjectName objectName = new ObjectName(ONAME);
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         if (mbs.isRegistered(objectName)) {
             mbs.unregisterMBean(objectName);
         }
+
+        stub = new Stub();
+        mbs.registerMBean(stub, objectName);
     }
 
     protected String getConfigResources() {

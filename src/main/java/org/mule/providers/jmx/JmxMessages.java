@@ -40,4 +40,8 @@ public class JmxMessages extends MessageFactoryHack {
     public static Message primitiveArraysNotSupported() {
         return createMessage(BUNDLE_PATH, -2);
     }
+
+    public static Object ignoringRemoveListenerOnPlatformMBS() {
+        return createMessage(BUNDLE_PATH, 4);
+    }
 }

@@ -20,6 +20,7 @@ import org.mule.umo.lifecycle.InitialisationException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 
@@ -43,7 +44,12 @@ public class JmxNotificationReceiver extends AbstractMessageReceiver implements 
     }
 
     protected void doDisconnect() throws Exception {
-        connector.removeNotificationListener(endpoint, this);
+        try {
+            connector.removeNotificationListener(endpoint, this, null);
+        } catch (InstanceNotFoundException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
     }
 
     protected void doDispose() {

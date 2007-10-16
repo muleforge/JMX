@@ -31,8 +31,6 @@ import java.lang.management.ManagementFactory;
 import java.util.*;
 
 import javax.management.*;
-import javax.management.relation.MBeanServerNotificationFilter;
-import javax.management.remote.JMXConnectionNotification;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -211,8 +209,8 @@ public class JmxConnector extends AbstractConnector {
      */
     public void addNotificationListener(UMOEndpoint endpoint, NotificationListener listener, Object handback) throws InstanceNotFoundException, IOException, MalformedObjectNameException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
-        ObjectName name = createObjectName(uri);
-        NotificationFilter filter = createNotificationFilter(uri);
+        ObjectName name = resolveObjectName(uri);
+        NotificationFilter filter = (NotificationFilter) endpoint.getProperty(JmxEndpointBuilder.PROP_FILTER);
         if (name == null && connector != null) {
             connector.addConnectionNotificationListener(listener, filter, handback);
         } else if (name != null) {
@@ -243,16 +241,18 @@ public class JmxConnector extends AbstractConnector {
      * @see JMXConnector#removeConnectionNotificationListener(
      *javax.management.NotificationListener)
      */
-    public void removeNotificationListener(UMOEndpoint endpoint, NotificationListener l) throws ListenerNotFoundException, InstanceNotFoundException, IOException, MalformedObjectNameException {
-
+    public void removeNotificationListener(UMOEndpoint endpoint, NotificationListener listener, Object handback) throws ListenerNotFoundException, InstanceNotFoundException, IOException, MalformedObjectNameException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
-        ObjectName name = createObjectName(uri);
+        ObjectName name = resolveObjectName(uri);
+        NotificationFilter filter = (NotificationFilter) endpoint.getProperty(JmxEndpointBuilder.PROP_FILTER);
         if (name == null) {
             if (connector != null) {
-                connector.removeConnectionNotificationListener(l);
+                connector.removeConnectionNotificationListener(listener);
+            } else {
+                logger.warn(JmxMessages.ignoringRemoveListenerOnPlatformMBS());
             }
         } else {
-            connection.removeNotificationListener(name, l);
+            connection.removeNotificationListener(name, listener, filter, handback);
         }
     }
 
@@ -265,10 +265,10 @@ public class JmxConnector extends AbstractConnector {
      */
     public Object setAttribute(UMOImmutableEndpoint endpoint, UMOEvent event) throws InstanceNotFoundException, IOException, InvalidAttributeValueException, ReflectionException, AttributeNotFoundException, MBeanException, MalformedObjectNameException, TransformerException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
-        String attributeName = createAttributeName(uri);
-        ObjectName objectName = createObjectName(uri);
+        String attributeName = uri.getResourceInfo();
+        ObjectName objectName = resolveObjectName(uri);
 
-        Object[] params = createParams(uri, event);
+        Object[] params = wrapArguments(uri, event);
         Object value = params == null ? null : params[0];
 
         Attribute attribute = new Attribute(attributeName, value);
@@ -284,8 +284,8 @@ public class JmxConnector extends AbstractConnector {
      */
     public Object getAttribute(UMOImmutableEndpoint endpoint) throws InstanceNotFoundException, IOException, ReflectionException, AttributeNotFoundException, MBeanException, MalformedObjectNameException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
-        ObjectName objectName = createObjectName(uri);
-        String attributeName = createAttributeName(uri);
+        ObjectName objectName = resolveObjectName(uri);
+        String attributeName = uri.getResourceInfo();
         return connection.getAttribute(objectName, attributeName);
     }
 
@@ -298,9 +298,9 @@ public class JmxConnector extends AbstractConnector {
      */
     public Object invoke(UMOImmutableEndpoint endpoint, UMOEvent event) throws InstanceNotFoundException, IOException, ReflectionException, MBeanException, IntrospectionException, ClassNotFoundException, NoSatisfiableMethodsException, JmxEndpointResolutionException, MalformedObjectNameException, TransformerException {
         UMOEndpointURI uri = endpoint.getEndpointURI();
-        ObjectName name = createObjectName(uri);
-        String operationName = createOperationName(uri);
-        Object[] params = createParams(uri, event);
+        ObjectName name = resolveObjectName(uri);
+        String operationName = uri.getResourceInfo();
+        Object[] params = wrapArguments(uri, event);
 
         MBeanInfo beanInfo = connection.getMBeanInfo(name);
         List<String[]> signatures = lookupSignatures(beanInfo, operationName, params, uri.getParams().getProperty(JmxEndpointBuilder.URIPROP_SIGNATURE));
@@ -314,6 +314,12 @@ public class JmxConnector extends AbstractConnector {
         }
 
         return connection.invoke(name, operationName, params, signatures.get(0));
+    }
+
+    private ObjectName resolveObjectName(UMOEndpointURI uri) throws MalformedObjectNameException {
+        String auth = uri.getAuthority();
+        if (auth == null) throw new NullPointerException("ObjectName cannot be created from null string!");
+        return mbeanAliases.containsKey(auth) ? mbeanAliases.get(auth) : new ObjectName(auth);
     }
 
     private List<String[]> lookupSignatures(MBeanInfo beanInfo, String operationName, Object[] params, String signatureHint) throws ClassNotFoundException {
@@ -359,21 +365,10 @@ public class JmxConnector extends AbstractConnector {
         return true;
     }
 
-    private ObjectName createObjectName(UMOEndpointURI uri) throws MalformedObjectNameException {
-        String auth = uri.getAuthority();
-        if (auth == null) throw new NullPointerException("ObjectName cannot be created from null string!");
-        return mbeanAliases.containsKey(auth) ? mbeanAliases.get(auth) : new ObjectName(auth);
-    }
-
-    private String createOperationName(UMOEndpointURI uri) {
-        return uri.getResourceInfo();
-    }
-
-    private String createAttributeName(UMOEndpointURI uri) {
-        return uri.getResourceInfo();
-    }
-
-    private Object[] createParams(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
+    /*
+     * TODO: replace with transformer
+     */
+    private Object[] wrapArguments(UMOEndpointURI uri, UMOEvent e) throws TransformerException {
         String raw = uri.getUserParams().getProperty(JmxEndpointBuilder.URIPROP_RAW);
 
         Object message = raw == null || "false".equalsIgnoreCase(raw)
@@ -389,94 +384,4 @@ public class JmxConnector extends AbstractConnector {
         }
     }
 
-    private NotificationFilter createNotificationFilter(UMOEndpointURI endpointURI) throws MalformedObjectNameException {
-        Properties params = endpointURI.getUserParams();
-
-        String auth = endpointURI.getAuthority();
-        boolean isConnector = JmxEndpointBuilder.URI_AUTHORITY_CONNECTOR.equals(auth);
-        boolean isDelegate = JmxEndpointBuilder.URI_AUTHORITY_MBSDELEGATE.equals(auth);
-
-        if (isDelegate && params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_NOTIFBEANS)) {
-            MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
-            String beansStr = params.getProperty(JmxEndpointBuilder.URIPROP_FILTER_NOTIFBEANS);
-            if (beansStr != null) {
-                setNotificationMBeans(filter, beansStr.split(";"));
-            }
-
-            setNotificationTypes(filter, params, isDelegate, isConnector);
-            return filter;
-        }
-
-        if (params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_ATTRIBUTES)) {
-            AttributeChangeNotificationFilter filter = new AttributeChangeNotificationFilter();
-            for (String attribute : params.getProperty(JmxEndpointBuilder.URIPROP_FILTER_ATTRIBUTES).split(";")) {
-                filter.enableAttribute(attribute);
-            }
-            return filter;
-        }
-
-        if (params.containsKey(JmxEndpointBuilder.URIPROP_FILTER_NOTIFTYPE)) {
-            NotificationFilterSupport filter = new NotificationFilterSupport();
-            setNotificationTypes(filter, params, isDelegate, isConnector);
-            return filter;
-        }
-
-        return null;
-    }
-
-    private void setNotificationMBeans(MBeanServerNotificationFilter filter, String[] onames) throws MalformedObjectNameException {
-        if (onames.length == 0) return;
-        if (onames[0].equals("!*")) {
-            filter.disableAllObjectNames();
-        }
-        for (String oname : onames) {
-            boolean shallEnable = !oname.startsWith("!");
-            if (shallEnable) {
-                oname = oname.substring(1);
-            }
-            if ("*".equals(oname)) {
-                if (shallEnable) {
-                    filter.enableAllObjectNames();
-                } else {
-                    filter.disableAllObjectNames();
-                }
-                continue;
-            }
-            try {
-                ObjectName objName = new ObjectName(oname);
-                if (shallEnable) {
-                    filter.enableObjectName(objName);
-                } else {
-                    filter.disableObjectName(objName);
-                }
-            } catch (Exception e) {
-                logger.warn("Could not " + (shallEnable ? "enable" : "disable") + " " + oname, e);
-            }
-        }
-    }
-
-    private void setNotificationTypes(NotificationFilterSupport filter, Properties params, boolean translateDelegateAliases, boolean translateConnectorAliases) {
-        String typesListStr = params.getProperty(JmxEndpointBuilder.URIPROP_FILTER_NOTIFTYPE);
-        if (typesListStr == null) return;
-        String[] typePrefixes = typesListStr.split(";");
-        for (String typePrefix : typePrefixes) {
-            if (translateConnectorAliases) typePrefix = translateConnectorNotificationType(typePrefix);
-            if (translateDelegateAliases) typePrefix = translateDelegateNotificationType(typePrefix);
-            filter.enableType(typePrefix);
-        }
-    }
-
-    private String translateConnectorNotificationType(String typePrefix) {
-        if (".opened".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.OPENED;
-        if (".closed".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.CLOSED;
-        if (".failed".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.FAILED;
-        if (".notif-lost".equalsIgnoreCase(typePrefix)) return JMXConnectionNotification.NOTIFS_LOST;
-        return typePrefix;
-    }
-
-    private String translateDelegateNotificationType(String typePrefix) {
-        if (".registered".equalsIgnoreCase(typePrefix)) return MBeanServerNotification.REGISTRATION_NOTIFICATION;
-        if (".unregistered".equalsIgnoreCase(typePrefix)) return MBeanServerNotification.UNREGISTRATION_NOTIFICATION;
-        return typePrefix;
-    }
 }
