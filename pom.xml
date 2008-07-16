@@ -70,7 +70,7 @@
         </snapshotRepository>
         <site>
             <id>muleforge.webdav.sites</id>
-            <url>dav:https://dav.muleforge.org/${pom.artifactId}/</url>
+            <url>dav:https://dav.muleforge.org/${pom.artifactId}/maven</url>
         </site>
     </distributionManagement>
 
